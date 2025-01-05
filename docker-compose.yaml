@@ -1,0 +1,463 @@
+services:
+  rabbit-mq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-container 
+    hostname: rabbitmq-host
+    environment:
+      - RABBITMQ_DEFAULT_USER=sasha
+      - RABBITMQ_DEFAULT_PASS=sasha
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+   
+  postgresdb:
+    image: postgres:latest
+    hostname: postgresdb-host
+    container_name: postgresdb-container  
+    environment:
+      POSTGRES_DB: "testDB"
+      POSTGRES_USER: "sasha"
+      POSTGRES_PASSWORD: "sasha"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresdb:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:latest
+    hostname: mongodb-host
+    container_name: mongodb-container  
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+   
+    
+  
+  amqp-adapter-app:
+    container_name: amqp-adapter-app
+    build:
+      context: ./A-starter-typescript
+      args:
+        - APP=amqp-simple-adapter
+    environment:
+      - NODE_ENV=prod
+      - AMQP_EXCHANGE=aux_exchange
+      - AMQP_ROUTINGKEY=nest-routingkey
+      - AMQP_QUEUE=nest-front-back
+      - AMQP_EVENT_ROUTINGKEY=nest-event-routingkey
+      - RABBIT_MQ_URL=rabbit-mq:5672
+      - RABBIT_MQ_USER=sasha
+      - RABBIT_MQ_PWD=sasha
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PWD=password
+      - MONGO_AGGR_DB=NEST
+      - MONGO_VIEW_DB=NEST_VIEW
+    restart: always    
+    depends_on:
+      - rabbit-mq
+      - mongodb
+   
+
+  grpc-adapter-app:
+    container_name: grpc-adapter-app
+    hostname: grpc-adapter-host
+    build:
+      context: ./A-starter-typescript
+      args:
+        - APP=grpc-adapter
+    restart: always
+    ports:
+      - 5002:5002
+    environment:
+      - NODE_ENV=prod
+      - SERVICE_HOST=grpc-adapter-app
+      - SERVICE_PORT=5002
+      - EUREKA_REGISTER_PORT=5002
+      - EUREKA_HOST=eureka-server     
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PWD=password
+      - MONGO_AGGR_DB=NEST
+      - MONGO_VIEW_DB=NEST_VIEW
+    depends_on:     
+      - mongodb
+   
+
+  rest-adapter-app:
+    container_name: rest-adapter-app
+    hostname: rest-adapter-host
+    build:
+      context: ./A-starter-typescript
+      args:
+        - APP=rest-adapter
+        - PORT=3000
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_ENV=prod
+      - HOST=rest-adapter-host
+      - PORT=3000
+      - EUREKA_PORT=8761
+      - EUREKA_REGISTER_PORT=3000
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PATH=/eureka/apps     
+      - AMQP_EXCHANGE=aux_exchange
+      - AMQP_ROUTINGKEY=nest-routingkey
+      - AMQP_QUEUE=nest-front-back
+      - RABBIT_MQ_URL=rabbit-mq:5672
+      - RABBIT_MQ_USER=sasha
+      - RABBIT_MQ_PWD=sasha 
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PWD=password
+      - MONGO_AGGR_DB=NEST
+      - MONGO_VIEW_DB=NEST_VIEW
+    links:
+      - eureka-server
+    depends_on:      
+      - mongodb
+      - eureka-server
+   
+
+  graphql-adapter-app:
+    container_name: graphql-adapter-app
+    hostname: graphql-adapter-host
+    build:
+      context: ./A-starter-typescript
+      args:
+      #app folder:  <root_dir>/apps/APP
+        - APP=graphql-adapter
+      #an extra folder to copy: apps/${APP}/src/${EXTRA_DIR}  
+        - EXTRA_DIR=graphql-schemas
+      #port to expose in this docker container   
+        - PORT=4000
+    restart: always
+    ports:
+      - 4000:4000
+    environment:
+      - NODE_ENV=prod
+      - HOST=graphql-adapter-host
+      - PORT=4000
+      - EUREKA_PORT=8761
+      - EUREKA_REGISTER_PORT=4000
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PATH=/eureka/apps      
+      - AMQP_EXCHANGE=aux_exchange
+      - AMQP_ROUTINGKEY=nest-routingkey
+      - AMQP_QUEUE=nest-front-back
+      - FRONT_URI=http://localhost:8123
+      - GATEWAY_URI=http://localhost:9090
+      - RABBIT_MQ_URL=rabbit-mq:5672
+      - RABBIT_MQ_USER=sasha
+      - RABBIT_MQ_PWD=sasha
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PWD=password
+      - MONGO_AGGR_DB=NEST
+      - MONGO_VIEW_DB=NEST_VIEW
+    links:
+      - eureka-server
+    depends_on:      
+      - mongodb
+      - eureka-server
+
+  graphql-code-adapter-app:
+    container_name: graphql-code-adapter-app
+    hostname: graphql-code-adapter-host
+    build:
+      context: ./A-starter-typescript
+      args:
+      #app folder:  <root_dir>/apps/APP
+        - APP=graphql-adapter-code
+      # no need in the extra folder to copy: apps/${APP}/src/${EXTRA_DIR}  
+      #  - EXTRA_DIR=graphql-schemas
+      #port to expose in this docker container   
+        - PORT=4000
+    restart: always
+    ports:
+      - 4000:4000
+    environment:
+      - NODE_ENV=prod
+      - HOST=graphql-code-adapter-host
+      - PORT=4000
+      - EUREKA_PORT=8761
+      - EUREKA_REGISTER_PORT=4000
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PATH=/eureka/apps      
+      - AMQP_EXCHANGE=aux_exchange
+      - AMQP_ROUTINGKEY=nest-routingkey
+      - AMQP_QUEUE=nest-front-back
+      - FRONT_URI=http://localhost:8123
+      - GATEWAY_URI=http://localhost:9090
+      - RABBIT_MQ_URL=rabbit-mq:5672
+      - RABBIT_MQ_USER=sasha
+      - RABBIT_MQ_PWD=sasha
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PWD=password
+      - MONGO_AGGR_DB=NEST
+      - MONGO_VIEW_DB=NEST_VIEW
+    links:
+      - eureka-server
+    depends_on:      
+      - mongodb
+      - eureka-server
+
+  ws-gateway:
+    container_name: ws-gateway-app
+    hostname: ws-gateway-host
+    build:
+      context: ./A-starter-typescript
+      args:
+        - APP=ws-gateway
+    restart: always
+    ports:
+      - 3012:3000
+    environment:
+      - NODE_ENV=prod
+      - HOST=ws-gateway-host
+      - PORT=3001
+      - WS_PORT=3000
+      - WS_TOPIC=message
+      - EUREKA_PORT=8761
+      - EUREKA_REGISTER_PORT=3012
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PATH=/eureka/apps 
+      - AMQP_EXCHANGE=aux_exchange
+      - AMQP_IN_ROUTINGKEY=ws-in-routingkey
+      - AMQP_OUT_ROUTINGKEY=ws-out-routingkey
+      - AMQP_IN_QUEUE=ws-in
+      - AMQP_OUT_QUEUE=ws-out
+      - RABBIT_MQ_URL=rabbit-mq:5672
+      - RABBIT_MQ_USER=sasha
+      - RABBIT_MQ_PWD=sasha     
+    links:
+      - eureka-server
+    depends_on:    
+      - eureka-server
+
+  
+  front-app:
+    container_name: front-app-container
+    hostname: front-host
+    build:
+      context: ./A-starter-typescript
+      dockerfile: DockerfileFront
+    restart: always
+    ports:
+      - 8123:8080
+    environment:      
+      - MY_APP_USER_URL=http://localhost:3000
+      - MY_APP_WS_URL=http://localhost:3012
+      - MY_APP_WS_TOPIC=message    
+      - MY_APP_GRAPHQL_ADAPTER=http://localhost:4000
+     
+    
+    depends_on:      
+      - rest-adapter-app
+      - graphql-code-adapter-app
+      # - ws-gateway
+     
+
+  eureka-server:
+    image:  spring-eureka-server
+    container_name: spring-eureka-server
+    hostname: eureka-server-host
+    build:
+      context: ./A-starter-java
+      args:        
+        - JAR_PATH=eureka
+        - EXPOSE_PORT=8761        
+    ports:
+      - "8761:8761"
+   
+  
+  gateway-server:
+    image:  spring-gateway-server
+    container_name: spring-gateway-server  
+    build:
+      context: ./A-starter-java
+      args:        
+        - JAR_PATH=gateway
+        - EXPOSE_PORT=9090
+            
+    ports:
+      - "9090:9090"
+    environment:     
+      SPRING_APPLICATION_NAME: ms-gateway      
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_URI: lb://rest-adapter
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_ID: userModule
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_PREDICATES[0]: Path=/users/**      
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_URI: lb://java-aux-service
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_ID: auxServiceModule
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_PREDICATES[0]: Path=/aux-data/**
+      SPRING_CLOUD_GATEWAY_ROUTES[2]_URI: lb://composer
+      SPRING_CLOUD_GATEWAY_ROUTES[2]_ID: composerModule
+      SPRING_CLOUD_GATEWAY_ROUTES[2]_PREDICATES[0]: Path=/composer/**
+      SPRING_CLOUD_GATEWAY_ROUTES[2]_FILTERS[0]: StripPrefix=1
+      SPRING_CLOUD_GATEWAY_ROUTES[3]_URI: lb://graphql-adapter
+      SPRING_CLOUD_GATEWAY_ROUTES[3]_ID: graphqlAdapterModule
+      SPRING_CLOUD_GATEWAY_ROUTES[3]_PREDICATES[0]: Path=/graphql-adapter/**
+      SPRING_CLOUD_GATEWAY_ROUTES[3]_FILTERS[0]: StripPrefix=1    
+        
+    depends_on:      
+      - eureka-server    
+    links:
+      - eureka-server
+
+  composer-graphql:
+    image:  spring-composer-graphql
+    container_name: spring-composer-graphql   
+    build:
+      context: ./A-starter-java
+      args:        
+        - JAR_PATH=composer-graphql-adapter
+        - EXPOSE_PORT=8083            
+    ports:
+      - "8083:8083"
+    environment:
+    #core ->out adapter configs
+      - rest.host=rest-adapter-host
+      - rest.port=3000
+      - rest.url=/users/all
+      - rabbitmq.host=rabbit-mq
+      - rabbitmq.port=5672
+      - rabbitmq.username=sasha
+      - rabbitmq.password=sasha
+      - rabbitmq.exchange=aux_exchange
+      - rabbitmq.nest-queue=nest-front-back
+      - rabbitmq.nest-routingkey=nest-routingkey     
+      - grpc.client.nest-grpc.address=static://grpc-adapter-host:5002
+      - grpc.client.nest-grpc.negotiationType=plaintext
+      # - grpc.client.python-grpc.address=static://python-app:5001
+      # - grpc.client.python-grpc.negotiationType=plaintext
+      # - grpc.client.java-grpc.address=static://java-grpc-adapter:8086
+      # - grpc.client.java-grpc.negotiationType=plaintext   
+    depends_on:      
+      - eureka-server
+      - rest-adapter-app
+      - grpc-adapter-app 
+      - amqp-adapter-app 
+    links:
+      - eureka-server
+      - rest-adapter-app
+      - grpc-adapter-app 
+      - amqp-adapter-app
+
+  composer-rest:
+    image:  spring-composer-rest
+    container_name: spring-composer-rest   
+    build:
+      context: ./A-starter-java
+      args:        
+        - JAR_PATH=composer-adapter
+        - EXPOSE_PORT=8083            
+    ports:
+      - "8083:8083"
+    environment:     
+     #core ->out adapter configs
+      - rest.host=rest-adapter-host
+      - rest.port=3000
+      - rest.url=/users/all
+      - rabbitmq.host=rabbit-mq
+      - rabbitmq.port=5672
+      - rabbitmq.username=sasha
+      - rabbitmq.password=sasha
+      - rabbitmq.exchange=aux_exchange
+      - rabbitmq.nest-queue=nest-front-back
+      - rabbitmq.nest-routingkey=nest-routingkey     
+      - grpc.client.nest-grpc.address=static://grpc-adapter-host:5002
+      - grpc.client.nest-grpc.negotiationType=plaintext
+    depends_on:      
+      - eureka-server
+      - rest-adapter-app
+      - grpc-adapter-app 
+      - amqp-adapter-app 
+    links:
+      - eureka-server
+      - rest-adapter-app
+      - grpc-adapter-app 
+      - amqp-adapter-app
+
+
+
+  # java-grpc-adapter:
+  #   image:  spring-grpc-adapter
+  #   container_name: spring-grpc-adapter
+  #   hostname: spring-grpc-adapter-host
+  #   build:
+  #     context: ./A-starter-java
+  #     args:        
+  #       - JAR_PATH=java-grpc-adapter
+  #       - EXPOSE_PORT=8086
+            
+  #   ports:
+  #     - "8086:8086"
+  #   environment:
+  #     - grpc.server.port=8086       
+  
+  #   depends_on:      
+  #     - eureka-server
+  #     - postgresdb
+
+
+  # python-app:
+  #   container_name: python-app-container
+  #   hostname: python-app-host
+  #   build:
+  #     context: ./pythonBigBack
+  #     args:
+  #       - REST_PORT=3011 
+  #       - GRPC_PORT=5001
+   
+  #   ports:
+  #     - 5001:5001
+  #     - 3011:3011
+  #   environment:      
+  #     - grpc.port=5001
+  #     - grpc.max_workers=10
+  #     - rabbitmq.hostname=rabbit-mq
+  #     - rabbitmq.username=sasha
+  #     - rabbitmq.password=sasha
+  #     - rabbitmq.exchange=aux_exchange
+  #     - rabbitmq.routing_key=python-routingkey
+  #     - rabbitmq.queue=python-queue
+  #     - rest.port=3011
+  #     - rest.host=0.0.0.0
+  #     - eureka.grpc_deployment_port=5001
+  #     - eureka.grpc_app_name=grpc_optimizer 
+  #     - eureka.rest_app_name=optimizer
+  #     - eureka.rest_deployment_port=3011  
+  #     - eureka.url=http://eureka-server:8761/eureka     
+  #     - mongodb.host=mongodb
+  #     - mongodb.port=27017
+  #     - mongodb.username=root
+  #     - mongodb.password=password    
+  #   depends_on:
+  #     - rabbit-mq
+  #     - mongodb     
+
+volumes:
+  mongodb_data_container:
+    driver: local
+  rabbitmq:
+    driver: local
+  postgresdb:
+    driver: local
+
+networks:
+  rabbitnetwork:
+    driver: bridge
