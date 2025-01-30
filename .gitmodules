@@ -4,3 +4,6 @@
 [submodule "A-starter-java"]
 	path = A-starter-java
 	url = https://github.com/sasha81/A-starter-java.git
+[submodule "A-starter-python"]
+	path = A-starter-python
+	url = https://github.com/sasha81/A-starter-python.git
