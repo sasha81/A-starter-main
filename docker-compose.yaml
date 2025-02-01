@@ -64,7 +64,9 @@ services:
     depends_on:
       - rabbit-mq
       - mongodb
-   
+    links:
+      - mongodb
+      - rabbit-mq	
 
   grpc-adapter-app:
     container_name: grpc-adapter-app
@@ -88,8 +90,9 @@ services:
       - MONGO_PWD=password
       - MONGO_AGGR_DB=NEST
       - MONGO_VIEW_DB=NEST_VIEW
-    depends_on:     
+    links:
       - mongodb
+      - eureka-server
    
 
   rest-adapter-app:
@@ -124,6 +127,7 @@ services:
       - MONGO_AGGR_DB=NEST
       - MONGO_VIEW_DB=NEST_VIEW
     links:
+      - mongodb
       - eureka-server
     depends_on:      
       - mongodb
@@ -168,6 +172,7 @@ services:
       - MONGO_AGGR_DB=NEST
       - MONGO_VIEW_DB=NEST_VIEW
     links:
+      - mongodb
       - eureka-server
     depends_on:      
       - mongodb
@@ -212,6 +217,7 @@ services:
       - MONGO_VIEW_DB=NEST_VIEW
     links:
       - eureka-server
+      - mongodb
     depends_on:      
       - mongodb
       - eureka-server
@@ -414,41 +420,45 @@ services:
   #     - postgresdb
 
 
-  # python-app:
-  #   container_name: python-app-container
-  #   hostname: python-app-host
-  #   build:
-  #     context: ./pythonBigBack
-  #     args:
-  #       - REST_PORT=3011 
-  #       - GRPC_PORT=5001
+  python-app:
+    container_name: python-app-container
+    hostname: python-app-host
+    build:
+      context: ./A-starter-python
+      args:
+        - REST_PORT=3011 
+        - GRPC_PORT=5001   
+    ports:
+      - 5001:5001
+      - 3011:3011
+    environment:      
+      - grpc.host=0.0.0.0
+      - grpc.port=5001
+      - grpc.max_workers=10
+      - rabbitmq.hostname=rabbit-mq
+      - rabbitmq.username=sasha
+      - rabbitmq.password=sasha
+      - rabbitmq.exchange=aux_exchange
+      - rabbitmq.routing_key=python-routingkey
+      - rabbitmq.queue=python-queue
+      - rest.port=3011
+      - rest.host=0.0.0.0
+      - eureka.grpc_host=0.0.0.0 
+      - eureka.rest_host=0.0.0.0 
+      - eureka.grpc_deployment_port=5001
+      - eureka.grpc_app_name=grpc_optimizer 
+      - eureka.rest_app_name=rest_optimizer
+      - eureka.rest_deployment_port=3011  
+      - eureka.url=http://eureka-server:8761/eureka     
+      - mongodb.host=mongodb
+      - mongodb.port=27017
+      - mongodb.username=root
+      - mongodb.password=password    
+      - mongodb.db_name=testdb    
    
-  #   ports:
-  #     - 5001:5001
-  #     - 3011:3011
-  #   environment:      
-  #     - grpc.port=5001
-  #     - grpc.max_workers=10
-  #     - rabbitmq.hostname=rabbit-mq
-  #     - rabbitmq.username=sasha
-  #     - rabbitmq.password=sasha
-  #     - rabbitmq.exchange=aux_exchange
-  #     - rabbitmq.routing_key=python-routingkey
-  #     - rabbitmq.queue=python-queue
-  #     - rest.port=3011
-  #     - rest.host=0.0.0.0
-  #     - eureka.grpc_deployment_port=5001
-  #     - eureka.grpc_app_name=grpc_optimizer 
-  #     - eureka.rest_app_name=optimizer
-  #     - eureka.rest_deployment_port=3011  
-  #     - eureka.url=http://eureka-server:8761/eureka     
-  #     - mongodb.host=mongodb
-  #     - mongodb.port=27017
-  #     - mongodb.username=root
-  #     - mongodb.password=password    
-  #   depends_on:
-  #     - rabbit-mq
-  #     - mongodb     
+    links:
+      - rabbit-mq
+      - mongodb  
 
 volumes:
   mongodb_data_container:
