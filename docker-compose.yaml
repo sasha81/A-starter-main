@@ -93,6 +93,9 @@ services:
     links:
       - mongodb
       - eureka-server
+    depends_on:      
+      - mongodb
+      - eureka-server
    
 
   rest-adapter-app:
@@ -455,7 +458,9 @@ services:
       - mongodb.username=root
       - mongodb.password=password    
       - mongodb.db_name=testdb    
-   
+    depends_on: 
+      - rabbit-mq
+      - mongodb    
     links:
       - rabbit-mq
       - mongodb  
