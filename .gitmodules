@@ -1,9 +1,12 @@
 [submodule "A-starter-typescript"]
 	path = A-starter-typescript
 	url = https://github.com/sasha81/A-starter-typescript.git
+	branch = main
 [submodule "A-starter-java"]
 	path = A-starter-java
 	url = https://github.com/sasha81/A-starter-java.git
+	branch = dynamicRouting
 [submodule "A-starter-python"]
 	path = A-starter-python
 	url = https://github.com/sasha81/A-starter-python.git
+	branch = master
