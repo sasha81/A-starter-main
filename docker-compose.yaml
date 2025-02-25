@@ -401,28 +401,6 @@ services:
       - grpc-adapter-app 
       - amqp-adapter-app
 
-
-
-  # java-grpc-adapter:
-  #   image:  spring-grpc-adapter
-  #   container_name: spring-grpc-adapter
-  #   hostname: spring-grpc-adapter-host
-  #   build:
-  #     context: ./A-starter-java
-  #     args:        
-  #       - JAR_PATH=java-grpc-adapter
-  #       - EXPOSE_PORT=8086
-            
-  #   ports:
-  #     - "8086:8086"
-  #   environment:
-  #     - grpc.server.port=8086       
-  
-  #   depends_on:      
-  #     - eureka-server
-  #     - postgresdb
-
-
   python-app:
     container_name: python-app-container
     hostname: python-app-host
