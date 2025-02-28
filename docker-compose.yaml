@@ -409,9 +409,11 @@ services:
       args:
         - REST_PORT=3011 
         - GRPC_PORT=5001   
+        - GRAPHQL_PORT=3111   
     ports:
       - 5001:5001
       - 3011:3011
+      - 3111:3111
     environment:      
       - grpc.host=0.0.0.0
       - grpc.port=5001
@@ -424,12 +426,16 @@ services:
       - rabbitmq.queue=python-queue
       - rest.port=3011
       - rest.host=0.0.0.0
+      - graphql.port=3111
+      - graphql.host=0.0.0.0
       - eureka.grpc_host=0.0.0.0 
       - eureka.rest_host=0.0.0.0 
       - eureka.grpc_deployment_port=5001
       - eureka.grpc_app_name=grpc_optimizer 
       - eureka.rest_app_name=rest_optimizer
+      - eureka.graphql_app_name=graphql_optimizer
       - eureka.rest_deployment_port=3011  
+      - eureka.graphql_deployment_port=3111      
       - eureka.url=http://eureka-server:8761/eureka     
       - mongodb.host=mongodb
       - mongodb.port=27017
